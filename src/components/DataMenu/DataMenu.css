@@ -1,0 +1,15 @@
+.data-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.data-menu__status {
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.data-menu__status--error {
+  color: var(--color-danger);
+}

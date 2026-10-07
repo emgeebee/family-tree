@@ -1,0 +1,101 @@
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-canvas: #f6f7f9;
+  --color-grid: #e3e6ea;
+  --color-text: #1f2328;
+  --color-muted: #59636e;
+  --color-border: #d8dde3;
+  --color-hover: #eef1f4;
+  --color-line: #6b7280;
+  --color-accent: #2f6feb;
+  --color-primary: #2a9d8f;
+  --color-badge: #4b5563;
+  --color-danger: #d1242f;
+  --color-avatar-bg: #e5e7eb;
+  --color-avatar-fg: #ffffff;
+  --shadow-md: 0 2px 6px rgb(0 0 0 / 0.12);
+  --shadow-lg: 0 10px 30px rgb(0 0 0 / 0.18);
+
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0d1117;
+    --color-surface: #161b22;
+    --color-canvas: #0d1117;
+    --color-grid: #1f262e;
+    --color-text: #e6edf3;
+    --color-muted: #9198a1;
+    --color-border: #30363d;
+    --color-hover: #21262d;
+    --color-line: #8b949e;
+    --color-accent: #4493f8;
+    --color-badge: #6e7681;
+    --color-danger: #f85149;
+    --color-avatar-bg: #30363d;
+    --color-avatar-fg: #8b949e;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.button {
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button--small {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.button--primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.button--primary:hover:not(:disabled) {
+  background: var(--color-accent);
+  filter: brightness(1.1);
+}
+
+.button--danger {
+  color: var(--color-danger);
+}
