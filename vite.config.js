@@ -31,6 +31,8 @@ function assertDeployEnv(mode) {
 export default defineConfig(({ command, mode }) => {
   if (command === 'build' && DEPLOY_MODES.includes(mode)) assertDeployEnv(mode)
   return {
+    // Relative base works on a custom domain root and on <user>.github.io/<repo>/.
+    base: './',
     plugins: [react(), apiServer()],
     server: {
       watch: { ignored: ['**/data/**'] },

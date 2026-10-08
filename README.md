@@ -62,10 +62,12 @@ Data lives in `data/` (git-ignored); override with `DATA_DIR`. Port defaults to 
 
 ## Deployment
 
-`.github/workflows/deploy.yml` builds and uploads `dist/` to S3 on every push: `main` uses the `prod` GitHub environment and `.env.prod`, any other branch uses `dev` and `.env.dev`. Each GitHub environment needs:
+`.github/workflows/deploy.yml` publishes to GitHub Pages (repo *Settings → Pages → Source: GitHub Actions*):
 
-- Secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
-- Variable `S3_BUCKET`, and optionally `AWS_REGION` (default `us-west-2`) and `CLOUDFRONT_DISTRIBUTION_ID` (invalidated after upload)
+- Pull requests to `main` lint and build with `.env.dev` as a check; nothing is deployed.
+- Pushes to `main` build with `.env.prod` and deploy `dist/` to Pages.
+
+The custom domain (`famtree.buzz`) is set in *Settings → Pages → Custom domain*. The build uses a relative base path, so it also works under `<user>.github.io/<repo>/`.
 
 ## Project structure
 
