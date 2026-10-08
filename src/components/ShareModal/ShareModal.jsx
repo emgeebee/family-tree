@@ -5,6 +5,32 @@ import './ShareModal.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
+function AccessedBy({ accesses = [] }) {
+  if (!accesses.length) return <p className="share-modal__muted">Not opened by anyone yet.</p>
+  const sorted = [...accesses].sort((a, b) => b.lastAccessedAt.localeCompare(a.lastAccessedAt))
+  return (
+    <div className="share-modal__access">
+      <span className="share-modal__muted">Accessed by</span>
+      <ul>
+        {sorted.map((access) => (
+          <li key={access.userid}>
+            <span className="share-modal__viewer" title={access.email}>
+              {access.name ?? access.email ?? 'Unknown user'}
+              {access.name && access.email && (
+                <span className="share-modal__muted"> {access.email}</span>
+              )}
+            </span>
+            <span className="share-modal__muted">
+              {access.accessCount === 1 ? 'Once' : `${access.accessCount} times`} · last{' '}
+              {dateFormat.format(new Date(access.lastAccessedAt))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function ShareModal({ treeId, onClose }) {
   const { index, shares } = useTrees()
   const name = index.find((e) => e.id === treeId)?.name ?? 'tree'
@@ -112,6 +138,7 @@ function ShareModal({ treeId, onClose }) {
                   Revoke
                 </button>
               </div>
+              <AccessedBy accesses={link.accessedBy} />
             </li>
           ))}
         </ul>
