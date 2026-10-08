@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { config } from '../../config.js'
 import { uploadPhoto } from '../../services/api.js'
 import { validateDateRange } from '../../utils/dates.js'
 import Avatar from '../Avatar/Avatar.jsx'
@@ -98,30 +99,32 @@ function PersonFormModal({
       onSubmit={handleSubmit}
       onCancel={onCancel}
     >
-      <div className="form-photo">
-        <Avatar src={values.profile_image} size={64} />
-        <div className="form-photo__actions">
-          <label className="button button--small">
-            {uploading ? 'Uploading…' : values.profile_image ? 'Change photo' : 'Upload photo'}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              hidden
-              disabled={uploading}
-              onChange={handlePhotoChange}
-            />
-          </label>
-          {values.profile_image && !uploading && (
-            <button
-              type="button"
-              className="button button--small"
-              onClick={() => setValues((v) => ({ ...v, profile_image: '' }))}
-            >
-              Remove
-            </button>
-          )}
+      {config.photoUploads && (
+        <div className="form-photo">
+          <Avatar src={values.profile_image} size={64} />
+          <div className="form-photo__actions">
+            <label className="button button--small">
+              {uploading ? 'Uploading…' : values.profile_image ? 'Change photo' : 'Upload photo'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                hidden
+                disabled={uploading}
+                onChange={handlePhotoChange}
+              />
+            </label>
+            {values.profile_image && !uploading && (
+              <button
+                type="button"
+                className="button button--small"
+                onClick={() => setValues((v) => ({ ...v, profile_image: '' }))}
+              >
+                Remove
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="form-row">
         <label className="form-field">

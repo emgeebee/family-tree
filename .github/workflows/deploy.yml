@@ -1,0 +1,64 @@
+name: Build and deploy
+
+# main deploys to the prod environment, every other branch to dev.
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+    env:
+      STAGE: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+      S3_BUCKET: ${{ vars.S3_BUCKET }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      # Reads .env.$STAGE; fails if the OAuth client id or API URL is missing.
+      - name: Build
+        run: npm run build -- --mode "$STAGE"
+
+      - name: Check deploy settings
+        run: |
+          if [ -z "$S3_BUCKET" ]; then
+            echo "::error::Set the S3_BUCKET variable on the '$STAGE' GitHub environment"
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+
+      # Hashed assets are cached forever; everything else (index.html,
+      # favicon) is revalidated so new deploys show up straight away.
+      - name: Upload to S3
+        run: |
+          aws s3 sync dist/assets "s3://$S3_BUCKET/assets" \
+            --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync dist "s3://$S3_BUCKET" --exclude "assets/*" \
+            --cache-control "no-cache"
+          aws s3 sync dist "s3://$S3_BUCKET" --delete --size-only
+
+      - name: Invalidate CloudFront
+        if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"

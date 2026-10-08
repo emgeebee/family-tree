@@ -22,27 +22,50 @@ The tree is stored in the same shape as the API export (see `src/data/sampleTree
 
 ```bash
 npm install
-npm run dev      # Vite dev server with hot reload, API included
-npm run build    # production build into dist/
+npm run dev      # Vite dev server with hot reload, local API included
+npm run build    # production build into dist/ (local API, no sign-in)
 npm start        # build, then run the Express server (API + app) on http://localhost:3001
 npm run serve    # run the Express server without rebuilding
 npm run lint     # lint with oxlint
 ```
 
-## Server
+## Configuration
 
-`server/app.js` is a small Express app. In development it is mounted inside the Vite dev server (see `vite.config.js`), so there is only one process to run. `npm start` builds the app and runs the server standalone, serving `dist/` alongside the API.
+Settings are read from Vite env files (`src/config.js`):
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client id. When set, the app shows a Google sign-in screen and sends the ID token to the API as `Authorization: Bearer …`. When empty (plain `npm run dev`), sign-in is skipped |
+| `VITE_API_BASE_URL` | Base URL of the backup API (defaults to `/api`, the local Express server) |
+| `VITE_PHOTO_UPLOADS` | `true` to enable photo uploads (local Express server only); off by default |
+
+`.env.prod` and `.env.dev` hold the deployed settings and are used by `vite build --mode prod|dev`; those builds fail if the client id or API URL is missing. Put local overrides in `.env.local` (git-ignored). The Google OAuth client needs each site's origin (e.g. `https://famtree.buzz`, `http://localhost:5173`) listed under *Authorised JavaScript origins*.
+
+## Backups
+
+The browser keeps localStorage as its primary store and backs up ~1.5s after each change. If localStorage is empty on load, the latest backup is restored before falling back to the sample tree.
+
+Backups use a `/docs` document API (the deployed one is `trackmyholidays-api`): the tree is saved as the document `family-tree` with body `{ "tree": … }`. The client tries `PUT /docs/family-tree` and falls back to `POST /docs` the first time.
+
+## Local server
+
+`server/app.js` is a small Express app that stands in for the API locally. In development it is mounted inside the Vite dev server (see `vite.config.js`), so there is only one process to run. `npm start` builds the app and runs the server standalone, serving `dist/` alongside the API.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /api/tree` | Latest backed-up tree (404 if none) |
-| `PUT /api/tree` | Save the tree to `data/tree.json` plus a timestamped snapshot in `data/backups/`. Saves within 10 minutes of the latest snapshot's creation overwrite it; the last 100 snapshots are kept |
+| `GET /api/docs/family-tree` | Latest backed-up tree as `{ id, tree, updatedAt }` (404 if none) |
+| `PUT /api/docs/family-tree`, `POST /api/docs` | Save `{ tree }` to `data/tree.json` plus a timestamped snapshot in `data/backups/`. Saves within 10 minutes of the latest snapshot's creation overwrite it; the last 100 snapshots are kept |
 | `POST /api/photos` | Upload an image (multipart field `photo`, max 10 MB), returns `{ url }` |
 | `GET /photos/:file` | Serve uploaded photos from `data/photos/` |
 
 Data lives in `data/` (git-ignored); override with `DATA_DIR`. Port defaults to 3001; override with `PORT`.
 
-The browser keeps localStorage as its primary store and backs up to the server ~1.5s after each change. If localStorage is empty on load, the latest server backup is restored before falling back to the sample tree.
+## Deployment
+
+`.github/workflows/deploy.yml` builds and uploads `dist/` to S3 on every push: `main` uses the `prod` GitHub environment and `.env.prod`, any other branch uses `dev` and `.env.dev`. Each GitHub environment needs:
+
+- Secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+- Variable `S3_BUCKET`, and optionally `AWS_REGION` (default `us-west-2`) and `CLOUDFRONT_DISTRIBUTION_ID` (invalidated after upload)
 
 ## Project structure
 

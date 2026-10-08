@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { config } from '../../config.js'
 import { useFamilyTree } from '../../hooks/useFamilyTree.js'
 import {
   getChildren,
@@ -180,17 +181,19 @@ function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
         onSave={(notes) => actions.updatePerson(personId, { notes })}
       />
 
-      <section className="person-panel__section">
-        <h3>Photos{person.photos?.length ? ` (${person.photos.length})` : ''}</h3>
-        <PhotoGallery
-          key={personId}
-          photos={person.photos ?? []}
-          profileUrl={person.profile_image}
-          onAdd={(urls) => actions.addPhotos(personId, urls)}
-          onRemove={(url) => actions.removePhoto(personId, url)}
-          onSetProfile={(url) => actions.setProfilePhoto(personId, url)}
-        />
-      </section>
+      {config.photoUploads && (
+        <section className="person-panel__section">
+          <h3>Photos{person.photos?.length ? ` (${person.photos.length})` : ''}</h3>
+          <PhotoGallery
+            key={personId}
+            photos={person.photos ?? []}
+            profileUrl={person.profile_image}
+            onAdd={(urls) => actions.addPhotos(personId, urls)}
+            onRemove={(url) => actions.removePhoto(personId, url)}
+            onSetProfile={(url) => actions.setProfilePhoto(personId, url)}
+          />
+        </section>
+      )}
 
       <section className="person-panel__section">
         <h3>Add relative</h3>
