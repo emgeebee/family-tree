@@ -6,6 +6,7 @@ import PartnershipFormModal from './components/PartnershipFormModal/PartnershipF
 import PersonFormModal from './components/PersonFormModal/PersonFormModal.jsx'
 import PersonPanel from './components/PersonPanel/PersonPanel.jsx'
 import TreeCanvas from './components/TreeCanvas/TreeCanvas.jsx'
+import UserMenu from './components/UserMenu/UserMenu.jsx'
 import { useFamilyTree } from './hooks/useFamilyTree.js'
 import { getPartnerId, getPartnerships, PARTNERSHIP_STATUS } from './utils/familyModel.js'
 import { fullName } from './utils/format.js'
@@ -104,6 +105,7 @@ function App() {
     <>
       <Header title={family.name || 'Family Tree'}>
         <DataMenu />
+        <UserMenu />
       </Header>
 
       <div className="app-body">

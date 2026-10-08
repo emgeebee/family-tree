@@ -1,21 +1,50 @@
+import { config } from '../config.js'
+
+/** The whole tree is stored as one document in the API's `/docs` store. */
+const TREE_DOC_ID = 'family-tree'
+
+const docsUrl = (id) => `${config.apiBaseUrl}/docs${id ? `/${id}` : ''}`
+
 async function errorMessage(res, fallback) {
   const body = await res.json().catch(() => null)
-  return body?.error ?? fallback
+  return body?.message ?? body?.error ?? fallback
 }
 
-export async function fetchBackup() {
-  const res = await fetch('/api/tree')
+async function request(url, { token, method = 'GET', body } = {}) {
+  const headers = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  let res
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  } catch {
+    throw new Error('Could not reach the backup server')
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('Not authorised – try signing out and in again')
+  }
+  return res
+}
+
+export async function fetchBackup(token) {
+  const res = await request(docsUrl(TREE_DOC_ID), { token })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(await errorMessage(res, 'Could not load backup'))
-  return res.json()
+  const doc = await res.json()
+  return doc.tree ?? null
 }
 
-export async function saveBackup(tree) {
-  const res = await fetch('/api/tree', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(tree),
-  })
+/** `PUT /docs/:id` only updates, so the first save creates the document. */
+export async function saveBackup(tree, token) {
+  const body = { tree }
+  let res = await request(docsUrl(TREE_DOC_ID), { token, method: 'PUT', body })
+  if (res.status === 404) {
+    res = await request(docsUrl(), { token, method: 'POST', body: { id: TREE_DOC_ID, ...body } })
+  }
   if (!res.ok) throw new Error(await errorMessage(res, 'Backup failed'))
 }
 

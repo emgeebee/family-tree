@@ -2,6 +2,7 @@ import { isValidTree } from '../utils/familyModel.js'
 
 const TREE_KEY = 'family-tree:tree'
 const VIEW_KEY = 'family-tree:view'
+const AUTH_KEY = 'family-tree:auth'
 
 function read(key) {
   try {
@@ -35,4 +36,21 @@ export function loadView() {
 
 export function saveView(view) {
   write(VIEW_KEY, view)
+}
+
+export function loadAuthToken() {
+  const token = read(AUTH_KEY)
+  return typeof token === 'string' ? token : null
+}
+
+export function saveAuthToken(token) {
+  write(AUTH_KEY, token)
+}
+
+export function clearAuthToken() {
+  try {
+    localStorage.removeItem(AUTH_KEY)
+  } catch {
+    // Nothing to clear if storage is unavailable.
+  }
 }
