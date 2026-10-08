@@ -1,5 +1,19 @@
-.app-body {
+.app-message {
   flex: 1;
-  min-height: 0;
-  display: flex;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 2rem;
+  color: var(--color-muted);
+  background: var(--color-canvas);
+  text-align: center;
+}
+
+.app-badge {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
 }

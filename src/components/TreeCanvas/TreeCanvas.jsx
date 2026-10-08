@@ -24,6 +24,7 @@ function TreeCanvas({
   layout,
   focusId,
   selectedId,
+  readOnly,
   onSelect,
   onFocus,
   onAddRelative,
@@ -126,6 +127,7 @@ function TreeCanvas({
               y={node.y}
               isSelected={node.id === selectedId}
               isFocus={node.id === focusId}
+              canEdit={!readOnly}
               isMenuOpen={node.id === menuPersonId}
               hiddenRelativeId={findHiddenRelativeId(family, person, layout.visibleIds, focusId)}
               onSelect={handleSelect}

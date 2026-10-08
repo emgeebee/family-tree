@@ -1,0 +1,10 @@
+.sync-status {
+  align-self: center;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.sync-status--error {
+  color: var(--color-danger);
+}

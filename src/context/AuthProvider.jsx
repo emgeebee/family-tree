@@ -18,7 +18,14 @@ function toSession(token) {
     return {
       token,
       expiresAt,
-      user: { name: claims.name, email: claims.email, picture: claims.picture },
+      user: {
+        id: claims.sub,
+        name: claims.name,
+        givenName: claims.given_name,
+        familyName: claims.family_name,
+        email: claims.email,
+        picture: claims.picture,
+      },
     }
   } catch {
     return null
@@ -59,7 +66,10 @@ function AuthProvider({ children }) {
             }
             saveAuthToken(credential)
             setError(null)
-            setSession(next)
+            // Keep the same user object on refresh so consumers don't reset.
+            setSession((prev) =>
+              prev?.user.id === next.user.id ? { ...next, user: prev.user } : next,
+            )
           },
         })
         setGoogle(id)

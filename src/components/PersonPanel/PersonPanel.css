@@ -203,6 +203,14 @@
   resize: vertical;
 }
 
+.person-panel__notes-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .person-panel__notes:focus {
   outline: 2px solid var(--color-accent);
   outline-offset: -1px;

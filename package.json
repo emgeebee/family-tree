@@ -4,16 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode dev",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview",
-    "start": "vite build && node server/index.js",
-    "serve": "node server/index.js"
+    "preview": "vite preview --mode dev",
+    "build:dev": "vite build --mode dev",
+    "build:prod": "vite build --mode prod"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "multer": "^2.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

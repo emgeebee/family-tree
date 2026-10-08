@@ -1,37 +1,44 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
-import sampleTree from '../data/sampleTree.json'
-import { useServerBackup } from '../hooks/useServerBackup.js'
-import { loadTree, loadView, saveTree, saveView } from '../services/storage.js'
+import { useEffect, useMemo, useReducer, useRef } from 'react'
+import { loadView, saveView } from '../services/storage.js'
 import { getFamilyIndex } from '../utils/familyModel.js'
 import { SPARE_IDS_NEEDED, timestamp } from '../utils/relatives.js'
 import { FamilyTreeContext } from './familyTreeContext.js'
 import { familyTreeReducer } from './familyTreeReducer.js'
 
-function initState(storedTree) {
+const createId = () => crypto.randomUUID()
+
+function initState({ treeId, initialTree }) {
   return familyTreeReducer(undefined, {
     type: 'load',
-    payload: { tree: storedTree ?? sampleTree, focusId: loadView().focusId },
+    payload: { tree: initialTree, focusId: loadView(treeId).focusId },
   })
 }
 
-const createId = () => crypto.randomUUID()
-
-function FamilyTreeProvider({ children }) {
-  const [storedTree] = useState(loadTree)
-  const [state, dispatch] = useReducer(familyTreeReducer, storedTree, initState)
-
-  useEffect(() => {
-    saveTree(state.tree)
-  }, [state.tree])
+/**
+ * Editing state for one tree. Remount (via `key`) to load a different tree;
+ * edits are reported through `onChange`. `readOnly` disables all edits.
+ */
+function FamilyTreeProvider({ treeId, initialTree, readOnly = false, onChange, children }) {
+  const [state, dispatch] = useReducer(familyTreeReducer, { treeId, initialTree }, initState)
+  const onChangeRef = useRef(onChange)
 
   useEffect(() => {
-    saveView({ focusId: state.focusId })
-  }, [state.focusId])
+    onChangeRef.current = onChange
+  })
+
+  useEffect(() => {
+    if (state.tree !== initialTree) onChangeRef.current?.(state.tree)
+  }, [state.tree, initialTree])
+
+  useEffect(() => {
+    saveView(treeId, { focusId: state.focusId })
+  }, [treeId, state.focusId])
 
   const actions = useMemo(() => {
     const send = (type, payload) => dispatch({ type, payload: { ...payload, now: timestamp() } })
+    const edit = (fn) => (readOnly ? () => {} : fn)
     return {
-      addRelative: ({ anchorId, relation, fields, otherParentId }) => {
+      addRelative: edit(({ anchorId, relation, fields, otherParentId }) => {
         const personId = createId()
         send('addRelative', {
           anchorId,
@@ -42,30 +49,23 @@ function FamilyTreeProvider({ children }) {
           spareIds: Array.from({ length: SPARE_IDS_NEEDED }, createId),
         })
         return personId
-      },
-      updatePerson: (id, fields) => send('updatePerson', { id, fields }),
-      deletePerson: (id) => send('deletePerson', { id }),
-      addPhotos: (id, urls) => send('addPhotos', { id, urls }),
-      removePhoto: (id, url) => send('removePhoto', { id, url }),
-      setProfilePhoto: (id, url) => send('setProfilePhoto', { id, url }),
-      setPartnershipStatus: (id, status) => send('setPartnershipStatus', { id, status }),
-      updatePartnership: (id, fields) => send('updatePartnership', { id, fields }),
-      removePartnership: (id) => send('removePartnership', { id }),
+      }),
+      updatePerson: edit((id, fields) => send('updatePerson', { id, fields })),
+      deletePerson: edit((id) => send('deletePerson', { id })),
+      addPhotos: edit((id, urls) => send('addPhotos', { id, urls })),
+      removePhoto: edit((id, url) => send('removePhoto', { id, url })),
+      setProfilePhoto: edit((id, url) => send('setProfilePhoto', { id, url })),
+      setPartnershipStatus: edit((id, status) => send('setPartnershipStatus', { id, status })),
+      updatePartnership: edit((id, fields) => send('updatePartnership', { id, fields })),
+      removePartnership: edit((id) => send('removePartnership', { id })),
       select: (id) => send('select', { id }),
       setFocus: (id) => send('setFocus', { id }),
-      load: (tree) => send('load', { tree }),
-      resetToSample: () => send('load', { tree: sampleTree }),
     }
-  }, [])
-
-  const backupStatus = useServerBackup(state.tree, {
-    hasLocalTree: storedTree !== null,
-    onRestore: actions.load,
-  })
+  }, [readOnly])
 
   const value = useMemo(
-    () => ({ state, family: getFamilyIndex(state.tree), actions, backupStatus }),
-    [state, actions, backupStatus],
+    () => ({ state, family: getFamilyIndex(state.tree), actions, readOnly }),
+    [state, actions, readOnly],
   )
 
   return (
