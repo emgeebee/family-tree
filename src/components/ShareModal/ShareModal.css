@@ -43,3 +43,36 @@
 .share-modal__row .share-modal__muted {
   flex: 1;
 }
+
+.share-modal__list > li + li {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.share-modal__access ul {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.share-modal__access li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.share-modal__viewer {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-modal__viewer .share-modal__muted {
+  font-size: 0.75rem;
+}
