@@ -1,41 +1,26 @@
-import path from 'node:path'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
-import { createApp } from './server/app.js'
 
-const DEPLOY_MODES = ['dev', 'prod']
-const REQUIRED_DEPLOY_ENV = ['VITE_GOOGLE_CLIENT_ID', 'VITE_API_BASE_URL']
+const REQUIRED_ENV = ['VITE_GOOGLE_CLIENT_ID', 'VITE_API_BASE_URL']
 
-/** Mounts the Express API inside the Vite dev/preview server. */
-function apiServer() {
-  const mount = (server) => {
-    const app = createApp({ dataDir: process.env.DATA_DIR ?? path.resolve('data') })
-    server.middlewares.use((req, res, next) => {
-      if (req.url.startsWith('/api/') || req.url.startsWith('/photos/')) app(req, res, next)
-      else next()
-    })
-  }
-  return { name: 'api-server', configureServer: mount, configurePreviewServer: mount }
-}
-
-/** Deploy builds must not ship without sign-in or a backup API. */
-function assertDeployEnv(mode) {
+/** The app can't run without sign-in and the docs API, so fail fast. */
+function assertEnv(mode) {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
-  const missing = REQUIRED_DEPLOY_ENV.filter((key) => !env[key])
+  const missing = REQUIRED_ENV.filter((key) => !env[key])
   if (missing.length) {
-    throw new Error(`Missing ${missing.join(', ')} for the "${mode}" build; set them in .env.${mode}`)
+    throw new Error(
+      `Missing ${missing.join(', ')} for mode "${mode}". ` +
+        'Run with --mode dev or --mode prod, or set them in .env.local.',
+    )
   }
 }
 
 // https://vite.dev/config/
-export default defineConfig(({ command, mode }) => {
-  if (command === 'build' && DEPLOY_MODES.includes(mode)) assertDeployEnv(mode)
+export default defineConfig(({ mode }) => {
+  assertEnv(mode)
   return {
     // Relative base works on a custom domain root and on <user>.github.io/<repo>/.
     base: './',
-    plugins: [react(), apiServer()],
-    server: {
-      watch: { ignored: ['**/data/**'] },
-    },
+    plugins: [react()],
   }
 })

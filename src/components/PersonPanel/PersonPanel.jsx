@@ -85,6 +85,54 @@ function PersonDetails({ person }) {
 
 const NOTES_AUTOSAVE_MS = 800
 
+function PartnerControls({ partnership, hasChildren, onStatusChange, onEdit, onRemove }) {
+  return (
+    <div className="person-panel__partner-controls">
+      <select
+        value={partnership.status}
+        aria-label="Relationship status"
+        onChange={(e) => onStatusChange(e.target.value)}
+      >
+        <option value={PARTNERSHIP_STATUS.CURRENT}>Partner</option>
+        <option value={PARTNERSHIP_STATUS.EX}>Ex-partner</option>
+      </select>
+      <button
+        type="button"
+        className="person-panel__icon-button"
+        title="Wedding details"
+        aria-label="Edit wedding details"
+        onClick={onEdit}
+      >
+        ✎
+      </button>
+      <button
+        type="button"
+        className="person-panel__icon-button person-panel__icon-button--danger"
+        disabled={hasChildren}
+        title={
+          hasChildren
+            ? 'This couple has children, so the relationship cannot be removed'
+            : 'Remove relationship'
+        }
+        aria-label="Remove relationship"
+        onClick={onRemove}
+      >
+        ×
+      </button>
+    </div>
+  )
+}
+
+function ReadOnlyNotes({ notes }) {
+  if (!notes?.trim()) return null
+  return (
+    <section className="person-panel__section">
+      <h3>Notes</h3>
+      <p className="person-panel__notes-text">{notes}</p>
+    </section>
+  )
+}
+
 function PersonNotes({ notes, onSave }) {
   const [draft, setDraft] = useState(notes ?? '')
   const isDirty = draft !== (notes ?? '')
@@ -118,7 +166,7 @@ function PersonNotes({ notes, onSave }) {
 }
 
 function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
-  const { state, family, actions } = useFamilyTree()
+  const { state, family, actions, readOnly } = useFamilyTree()
   const person = family.people[personId]
   if (!person) return null
 
@@ -154,7 +202,9 @@ function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
       </div>
 
       <div className="person-panel__actions">
-        <button type="button" className="button" onClick={onEdit}>Edit</button>
+        {!readOnly && (
+          <button type="button" className="button" onClick={onEdit}>Edit</button>
+        )}
         <button
           type="button"
           className="button"
@@ -163,25 +213,31 @@ function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
         >
           Set as focus
         </button>
-        <button
-          type="button"
-          className="button button--danger"
-          disabled={isOnlyPerson}
-          onClick={handleDelete}
-        >
-          Delete
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            className="button button--danger"
+            disabled={isOnlyPerson}
+            onClick={handleDelete}
+          >
+            Delete
+          </button>
+        )}
       </div>
 
       <PersonDetails person={person} />
 
-      <PersonNotes
-        key={personId}
-        notes={person.notes}
-        onSave={(notes) => actions.updatePerson(personId, { notes })}
-      />
+      {readOnly ? (
+        <ReadOnlyNotes notes={person.notes} />
+      ) : (
+        <PersonNotes
+          key={personId}
+          notes={person.notes}
+          onSave={(notes) => actions.updatePerson(personId, { notes })}
+        />
+      )}
 
-      {config.photoUploads && (
+      {config.photoUploads && !readOnly && (
         <section className="person-panel__section">
           <h3>Photos{person.photos?.length ? ` (${person.photos.length})` : ''}</h3>
           <PhotoGallery
@@ -195,22 +251,24 @@ function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
         </section>
       )}
 
-      <section className="person-panel__section">
-        <h3>Add relative</h3>
-        <div className="person-panel__add">
-          {RELATION_OPTIONS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              className="button button--small"
-              disabled={value === RELATIONS.PARENT && !canAddParent(person)}
-              onClick={() => onAddRelative(personId, value)}
-            >
-              + {label}
-            </button>
-          ))}
-        </div>
-      </section>
+      {!readOnly && (
+        <section className="person-panel__section">
+          <h3>Add relative</h3>
+          <div className="person-panel__add">
+            {RELATION_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                className="button button--small"
+                disabled={value === RELATIONS.PARENT && !canAddParent(person)}
+                onClick={() => onAddRelative(personId, value)}
+              >
+                + {label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <RelativeSection
         title="Parents"
@@ -225,7 +283,6 @@ function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
           <ul>
             {partnerships.map((p) => {
               const partner = family.people[getPartnerId(p, personId)]
-              const hasChildren = partnershipHasChildren(family, p.id)
               return (
                 <PersonLink
                   key={p.id}
@@ -234,39 +291,15 @@ function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
                   meta={partnershipSummary(p)}
                   onSelect={actions.select}
                 >
-                  <div className="person-panel__partner-controls">
-                    <select
-                      value={p.status}
-                      aria-label="Relationship status"
-                      onChange={(e) => actions.setPartnershipStatus(p.id, e.target.value)}
-                    >
-                      <option value={PARTNERSHIP_STATUS.CURRENT}>Partner</option>
-                      <option value={PARTNERSHIP_STATUS.EX}>Ex-partner</option>
-                    </select>
-                    <button
-                      type="button"
-                      className="person-panel__icon-button"
-                      title="Wedding details"
-                      aria-label="Edit wedding details"
-                      onClick={() => onEditPartnership(p.id)}
-                    >
-                      ✎
-                    </button>
-                    <button
-                      type="button"
-                      className="person-panel__icon-button person-panel__icon-button--danger"
-                      disabled={hasChildren}
-                      title={
-                        hasChildren
-                          ? 'This couple has children, so the relationship cannot be removed'
-                          : 'Remove relationship'
-                      }
-                      aria-label="Remove relationship"
-                      onClick={() => actions.removePartnership(p.id)}
-                    >
-                      ×
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <PartnerControls
+                      partnership={p}
+                      hasChildren={partnershipHasChildren(family, p.id)}
+                      onStatusChange={(status) => actions.setPartnershipStatus(p.id, status)}
+                      onEdit={() => onEditPartnership(p.id)}
+                      onRemove={() => actions.removePartnership(p.id)}
+                    />
+                  )}
                 </PersonLink>
               )
             })}

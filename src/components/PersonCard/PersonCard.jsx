@@ -12,6 +12,7 @@ function PersonCard({
   y,
   isSelected,
   isFocus,
+  canEdit,
   isMenuOpen,
   hiddenRelativeId,
   onSelect,
@@ -74,7 +75,7 @@ function PersonCard({
         </button>
       )}
 
-      {isSelected && (
+      {isSelected && canEdit && (
         <button
           type="button"
           className="person-card__add"
@@ -89,7 +90,7 @@ function PersonCard({
         </button>
       )}
 
-      {isSelected && isMenuOpen && (
+      {isSelected && canEdit && isMenuOpen && (
         <AddRelativeMenu
           canAddParent={canAddParent(person)}
           onSelect={(relation) => onAddRelative(person.id, relation)}

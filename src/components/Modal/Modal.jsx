@@ -7,6 +7,7 @@ function Modal({
   submitLabel = 'Save',
   cancelLabel = 'Cancel',
   submitDisabled,
+  wide = false,
   error,
   onSubmit,
   onCancel,
@@ -23,7 +24,7 @@ function Modal({
   return (
     <div className="modal-backdrop" onMouseDown={onCancel}>
       <form
-        className="modal"
+        className={wide ? 'modal modal--wide' : 'modal'}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"

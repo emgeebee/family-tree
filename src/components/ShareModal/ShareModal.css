@@ -1,0 +1,45 @@
+.share-modal__intro {
+  color: var(--color-muted);
+}
+
+.share-modal__muted {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.share-modal__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.share-modal__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.share-modal__link input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.share-modal__row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.share-modal__row .share-modal__muted {
+  flex: 1;
+}
