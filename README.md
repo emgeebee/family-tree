@@ -59,8 +59,10 @@ Settings come from Vite env files (`src/config.js`); the build fails if the firs
 
 `.github/workflows/deploy.yml` publishes to GitHub Pages (repo *Settings → Pages → Source: GitHub Actions*):
 
-- Pull requests to `main` lint and build with `.env.dev` as a check; nothing is deployed.
+- Every push to any branch, and every pull request to `main`, runs lint plus a dev and a prod build as a check; nothing is deployed.
 - Pushes to `main` build with `.env.prod` and deploy `dist/` to Pages.
+
+To stop broken code reaching `main`, add a branch protection rule (or ruleset) for `main` that requires the `build` check to pass before merging.
 
 The custom domain (`famtree.buzz`) is set in *Settings → Pages → Custom domain*. The build uses a relative base path, so it also works under `<user>.github.io/<repo>/`.
 
