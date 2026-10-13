@@ -1,11 +1,12 @@
 name: CI and deploy Pages
 
-# Pull requests build with .env.dev as a check; pushes to main build with
+# Every branch and pull request is linted and built (with .env.dev and
+# .env.prod) so problems show up before merging. Pushes to main build with
 # .env.prod and publish to GitHub Pages.
 on:
-  pull_request:
-    branches: [main]
   push:
+    branches: ['**']
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -15,14 +16,15 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: pages-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  IS_MAIN_PUSH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      STAGE: ${{ github.event_name == 'pull_request' && 'dev' || 'prod' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,12 +37,16 @@ jobs:
 
       - run: npm run lint
 
-      # Reads .env.$STAGE; fails if the OAuth client id or API URL is missing.
-      - name: Build
-        run: npm run build -- --mode "$STAGE"
+      # Each build reads .env.<mode> and fails if the OAuth client id or API URL is missing.
+      - name: Build (dev)
+        if: env.IS_MAIN_PUSH != 'true'
+        run: npm run build:dev
+
+      - name: Build (prod)
+        run: npm run build:prod
 
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: env.IS_MAIN_PUSH == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist

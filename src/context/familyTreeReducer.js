@@ -6,6 +6,7 @@ import {
   deletePerson,
   removePartnership,
   removePhoto,
+  setParents,
   setPartnershipStatus,
   setProfilePhoto,
   updatePartnership,
@@ -66,6 +67,9 @@ export function familyTreeReducer(state, action) {
         ...state,
         tree: updatePartnership(state.tree, payload.id, payload.fields, payload.now),
       }
+
+    case 'setParents':
+      return { ...state, tree: setParents(state.tree, payload) }
 
     case 'removePartnership':
       return { ...state, tree: removePartnership(state.tree, payload.id, payload.now) }

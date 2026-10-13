@@ -1,5 +1,6 @@
 import {
   getFamilyIndex,
+  getPartnerId,
   getPartnerships,
   parseIndividualIds,
   PARTNER_TYPE_BY_STATUS,
@@ -359,6 +360,88 @@ export function removePartnership(tree, partnerRelationshipId, now) {
     partner_relationships: tree.partner_relationships.filter(
       (r) => r.id !== partnerRelationshipId,
     ),
+  })
+}
+
+/**
+ * People already in the tree who could be the second parent of a person with
+ * one parent: that parent's partners and ex-partners.
+ */
+export function secondParentCandidates(family, childId) {
+  const child = family.people[childId]
+  if (child?.parentIds.length !== 1) return []
+  const [parentId] = child.parentIds
+  return getPartnerships(family, parentId)
+    .map((p) => ({ id: getPartnerId(p, parentId), status: p.status }))
+    .filter(({ id }) => id !== childId && family.people[id])
+}
+
+export function getDescendantIds(family, id) {
+  const found = new Set()
+  const queue = [id]
+  while (queue.length) {
+    const current = queue.shift()
+    for (const p of Object.values(family.people)) {
+      if (p.parentIds.includes(current) && !found.has(p.id)) {
+        found.add(p.id)
+        queue.push(p.id)
+      }
+    }
+  }
+  return found
+}
+
+/** Everyone who could be a parent of `childId` without creating a loop. */
+export function parentCandidates(family, childId) {
+  const excluded = getDescendantIds(family, childId).add(childId)
+  return Object.values(family.people).filter((p) => !excluded.has(p.id))
+}
+
+/**
+ * Replaces the parents of `childId` (zero, one or two people) by moving the
+ * child onto their union, creating it (with `unionId`) if needed. Siblings keep
+ * their parents. The old union is removed once no child uses it, unless it is a
+ * couple's partnership.
+ */
+export function setParents(tree, { childId, parentIds, unionId, linkId, now }) {
+  const family = getFamilyIndex(tree)
+  const child = family.people[childId]
+  if (!child) return tree
+  const ids = [...new Set(parentIds)]
+  const allowed = new Set(parentCandidates(family, childId).map((p) => p.id))
+  if (ids.length > 2 || !ids.every((id) => allowed.has(id))) return tree
+  if (ids.length === child.parentIds.length && ids.every((id) => child.parentIds.includes(id))) {
+    return tree
+  }
+
+  const link = tree.parent_relationships.find((r) => r.child_id === childId)
+  let partnerRelationships = tree.partner_relationships
+  let parentRelationships = tree.parent_relationships.filter((r) => r.child_id !== childId)
+
+  if (ids.length) {
+    let union = findUnion(tree, ids)
+    if (!union) {
+      union = newPartnerRelationship(tree, unionId, ids, PARTNERSHIP_STATUS.CURRENT, now)
+      partnerRelationships = [...partnerRelationships, union]
+    }
+    parentRelationships = link
+      ? tree.parent_relationships.map((r) =>
+          r === link ? { ...r, partner_relationship_id: union.id, updated_at: now } : r,
+        )
+      : [...parentRelationships, newParentRelationship(tree, linkId, childId, union.id, now)]
+  }
+
+  const oldUnionId = link?.partner_relationship_id
+  const oldUnionUnused =
+    oldUnionId &&
+    !parentRelationships.some((r) => r.partner_relationship_id === oldUnionId) &&
+    parseIndividualIds(partnerRelationships.find((r) => r.id === oldUnionId) ?? {}).length < 2
+
+  return withChanges(tree, now, {
+    partner_relationships: oldUnionUnused
+      ? partnerRelationships.filter((r) => r.id !== oldUnionId)
+      : partnerRelationships,
+    parent_relationships: parentRelationships,
   })
 }
 

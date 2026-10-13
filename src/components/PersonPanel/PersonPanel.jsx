@@ -32,11 +32,15 @@ function PersonLink({ person, settings, meta, onSelect, children }) {
   )
 }
 
-function RelativeSection({ title, people, settings, onSelect }) {
-  if (!people.length) return null
+function RelativeSection({ title, people, settings, onSelect, action }) {
+  if (!people.length && !action) return null
   return (
     <section className="person-panel__section">
-      <h3>{title}</h3>
+      <div className="person-panel__section-header">
+        <h3>{title}</h3>
+        {action}
+      </div>
+      {!people.length && <p className="person-panel__empty">Not recorded</p>}
       <ul>
         {people.map((p) => (
           <PersonLink key={p.id} person={p} settings={settings} onSelect={onSelect} />
@@ -165,7 +169,7 @@ function PersonNotes({ notes, onSave }) {
   )
 }
 
-function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
+function PersonPanel({ personId, onEdit, onEditPartnership, onEditParents, onAddRelative }) {
   const { state, family, actions, readOnly } = useFamilyTree()
   const person = family.people[personId]
   if (!person) return null
@@ -275,6 +279,13 @@ function PersonPanel({ personId, onEdit, onEditPartnership, onAddRelative }) {
         people={parents}
         settings={settings}
         onSelect={actions.select}
+        action={
+          !readOnly && (
+            <button type="button" className="person-panel__text-button" onClick={onEditParents}>
+              Change
+            </button>
+          )
+        }
       />
 
       {partnerships.length > 0 && (

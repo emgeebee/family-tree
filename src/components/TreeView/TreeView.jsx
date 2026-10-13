@@ -1,10 +1,16 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useFamilyTree } from '../../hooks/useFamilyTree.js'
 import { getPartnerId, getPartnerships, PARTNERSHIP_STATUS } from '../../utils/familyModel.js'
-import { fullName } from '../../utils/format.js'
-import { relationLabel, RELATIONS } from '../../utils/relatives.js'
+import { fullName, lifespan } from '../../utils/format.js'
+import {
+  parentCandidates,
+  relationLabel,
+  RELATIONS,
+  secondParentCandidates,
+} from '../../utils/relatives.js'
 import { computeLayout } from '../../utils/treeLayout.js'
 import Modal from '../Modal/Modal.jsx'
+import ParentsFormModal from '../ParentsFormModal/ParentsFormModal.jsx'
 import PartnershipFormModal from '../PartnershipFormModal/PartnershipFormModal.jsx'
 import PersonFormModal from '../PersonFormModal/PersonFormModal.jsx'
 import PersonPanel from '../PersonPanel/PersonPanel.jsx'
@@ -31,7 +37,27 @@ function buildAddModalProps(family, anchorId, relation) {
     props.initialOtherParentId = current ? getPartnerId(current, anchorId) : ''
   }
 
+  if (relation === RELATIONS.PARENT) {
+    const parent = family.people[anchor.parentIds[0]]
+    props.existingPersonOptions = secondParentCandidates(family, anchorId).map(({ id, status }) => {
+      const role = status === PARTNERSHIP_STATUS.EX ? 'ex-partner' : 'partner'
+      return {
+        id,
+        label: `${fullName(family.people[id], family.settings)} (${role} of ${fullName(parent, family.settings)})`,
+      }
+    })
+  }
+
   return props
+}
+
+function parentOptions(family, childId) {
+  return parentCandidates(family, childId)
+    .map((p) => {
+      const dates = lifespan(p)
+      return { id: p.id, label: fullName(p, family.settings) + (dates ? ` (${dates})` : '') }
+    })
+    .sort((a, b) => a.label.localeCompare(b.label))
 }
 
 function MarriageDetails({ partnership }) {
@@ -70,7 +96,12 @@ function TreeView() {
   if (!readOnly && modal?.mode === 'add' && family.people[modal.anchorId]) {
     modalProps = {
       ...buildAddModalProps(family, modal.anchorId, modal.relation),
-      onSubmit: (fields, { otherParentId }) => {
+      onSubmit: (fields, { otherParentId, existingId }) => {
+        if (existingId) {
+          actions.setParents(modal.anchorId, [...family.people[modal.anchorId].parentIds, existingId])
+          closeModal()
+          return
+        }
         actions.addRelative({
           anchorId: modal.anchorId,
           relation: modal.relation,
@@ -99,6 +130,8 @@ function TreeView() {
   const coupleName = (partnership) =>
     partnership.partnerIds.map((id) => fullName(family.people[id], family.settings)).join(' & ')
   const notesPerson = modal?.mode === 'notes' ? family.people[modal.personId] : null
+  const parentsPerson =
+    !readOnly && modal?.mode === 'editParents' ? family.people[modal.personId] : null
 
   return (
     <>
@@ -124,10 +157,25 @@ function TreeView() {
             onEditPartnership={(partnershipId) =>
               setModal({ mode: 'editPartnership', partnershipId })
             }
+            onEditParents={() => setModal({ mode: 'editParents', personId: selectedId })}
             onAddRelative={openAddModal}
           />
         )}
       </div>
+
+      {parentsPerson && (
+        <ParentsFormModal
+          key={parentsPerson.id}
+          title={`Parents of ${fullName(parentsPerson, family.settings)}`}
+          options={parentOptions(family, parentsPerson.id)}
+          initialParentIds={parentsPerson.parentIds}
+          onSubmit={(parentIds) => {
+            actions.setParents(parentsPerson.id, parentIds)
+            closeModal()
+          }}
+          onCancel={closeModal}
+        />
+      )}
 
       {modalProps && (
         <PersonFormModal
