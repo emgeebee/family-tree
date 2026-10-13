@@ -58,6 +58,9 @@ function FamilyTreeProvider({ treeId, initialTree, readOnly = false, onChange, c
       setPartnershipStatus: edit((id, status) => send('setPartnershipStatus', { id, status })),
       updatePartnership: edit((id, fields) => send('updatePartnership', { id, fields })),
       removePartnership: edit((id) => send('removePartnership', { id })),
+      setParents: edit((childId, parentIds) =>
+        send('setParents', { childId, parentIds, unionId: createId(), linkId: createId() }),
+      ),
       select: (id) => send('select', { id }),
       setFocus: (id) => send('setFocus', { id }),
     }
