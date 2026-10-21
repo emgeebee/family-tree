@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useFamilyTree } from '../../hooks/useFamilyTree.js'
 import { getPartnerId, getPartnerships, PARTNERSHIP_STATUS } from '../../utils/familyModel.js'
-import { fullName, lifespan } from '../../utils/format.js'
+import { fullName, isDeceased, lifespan } from '../../utils/format.js'
 import {
   parentCandidates,
   relationLabel,
@@ -79,12 +79,38 @@ function MarriageDetails({ partnership }) {
 }
 
 /** The tree canvas, side panel and their dialogs for the tree in FamilyTreeProvider. */
-function TreeView() {
+function TreeView({ onStats }) {
   const { state, family, actions, readOnly } = useFamilyTree()
   const { focusId, selectedId } = state
   const [modal, setModal] = useState(null)
+  const [onScreen, setOnScreen] = useState(null)
+  const onStatsRef = useRef(onStats)
 
   const layout = useMemo(() => computeLayout(family, focusId), [family, focusId])
+  const handleScreenCount = useCallback((count) => {
+    setOnScreen((current) => (current === count ? current : count))
+  }, [])
+
+  const stats = useMemo(() => {
+    const people = Object.values(family.people)
+    return {
+      total: people.length,
+      shown: layout.nodes.length,
+      generations: new Set(layout.nodes.map((node) => node.y)).size,
+      living: people.filter((person) => !isDeceased(person)).length,
+      onScreen,
+    }
+  }, [family, layout, onScreen])
+
+  useLayoutEffect(() => {
+    onStatsRef.current = onStats
+  })
+
+  useLayoutEffect(() => {
+    onStatsRef.current?.(stats)
+  }, [stats])
+
+  useLayoutEffect(() => () => onStatsRef.current?.(null), [])
 
   const openAddModal = useCallback(
     (anchorId, relation) => setModal({ mode: 'add', anchorId, relation }),
@@ -149,6 +175,7 @@ function TreeView() {
           onShowPartnership={(partnershipId) =>
             setModal({ mode: 'viewPartnership', partnershipId })
           }
+          onScreenChange={handleScreenCount}
         />
         {selectedId && (
           <PersonPanel

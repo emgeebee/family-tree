@@ -166,6 +166,21 @@ function placeUnit(unit, left, top, out) {
   return personX
 }
 
+/** Cards that intersect the visible canvas, including ones only partly in view. */
+export function countNodesInView(nodes, view, width, height) {
+  if (width <= 0 || height <= 0) return 0
+  const { x, y, scale } = view
+  let count = 0
+  for (const node of nodes) {
+    const left = node.x * scale + x
+    const top = node.y * scale + y
+    const right = left + CARD_WIDTH * scale
+    const bottom = top + CARD_HEIGHT * scale
+    if (right > 0 && bottom > 0 && left < width && top < height) count += 1
+  }
+  return count
+}
+
 const EMPTY_LAYOUT = {
   nodes: [],
   lines: [],

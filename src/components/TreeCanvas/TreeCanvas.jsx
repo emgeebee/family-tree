@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { usePanZoom } from '../../hooks/usePanZoom.js'
 import { getPartnerships, getPartnerId } from '../../utils/familyModel.js'
 import { hasMarriageDetails, marriageTooltip } from '../../utils/format.js'
-import { CARD_HEIGHT, CARD_WIDTH } from '../../utils/treeLayout.js'
+import { CARD_HEIGHT, CARD_WIDTH, countNodesInView } from '../../utils/treeLayout.js'
 import PersonCard from '../PersonCard/PersonCard.jsx'
 import './TreeCanvas.css'
 
@@ -30,6 +30,7 @@ function TreeCanvas({
   onAddRelative,
   onShowNotes,
   onShowPartnership,
+  onScreenChange,
 }) {
   const partnershipsById = new Map(family.partnerships.map((p) => [p.id, p]))
   const { containerRef, view, zoomBy, centerOn, wasDragged, panHandlers } = usePanZoom()
@@ -40,6 +41,18 @@ function TreeCanvas({
     const node = layout.nodes.find((n) => n.id === id)
     if (node) centerOn(node.x + CARD_WIDTH / 2, node.y + CARD_HEIGHT / 2)
   }
+
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return undefined
+    const report = () => {
+      onScreenChange(countNodesInView(layout.nodes, view, el.clientWidth, el.clientHeight))
+    }
+    report()
+    const observer = new ResizeObserver(report)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [layout.nodes, view, onScreenChange, containerRef])
 
   useEffect(() => {
     if (centeredFocusRef.current === focusId) return

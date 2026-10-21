@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Header from './components/Header/Header.jsx'
+import TreeStats from './components/TreeStats/TreeStats.jsx'
 import ShareModal from './components/ShareModal/ShareModal.jsx'
 import SyncStatus from './components/SyncStatus/SyncStatus.jsx'
 import TreesModal from './components/TreesModal/TreesModal.jsx'
@@ -12,9 +13,11 @@ import { downloadTree } from './services/fileTransfer.js'
 import './App.css'
 
 function SharedTree({ shared, onClose }) {
+  const [treeStats, setTreeStats] = useState(null)
+
   return (
     <>
-      <Header title={shared.name ?? 'Shared family tree'}>
+      <Header title={shared.name ?? 'Shared family tree'} center={<TreeStats stats={treeStats} />}>
         <span className="app-badge">View only</span>
         <button type="button" className="button button--small" onClick={onClose}>
           My trees
@@ -28,7 +31,7 @@ function SharedTree({ shared, onClose }) {
           initialTree={shared.tree}
           readOnly
         >
-          <TreeView />
+          <TreeView onStats={setTreeStats} />
         </FamilyTreeProvider>
       ) : (
         <p className="app-message">
@@ -44,6 +47,7 @@ function App() {
     useTrees()
   const [showTrees, setShowTrees] = useState(false)
   const [sharingId, setSharingId] = useState(null)
+  const [treeStats, setTreeStats] = useState(null)
 
   if (shared) return <SharedTree shared={shared} onClose={closeShared} />
 
@@ -58,7 +62,7 @@ function App() {
         initialTree={activeTree}
         onChange={(tree) => updateTree(activeId, tree)}
       >
-        <TreeView />
+        <TreeView onStats={setTreeStats} />
       </FamilyTreeProvider>
     )
   } else if (status.state === 'loading') {
@@ -69,7 +73,10 @@ function App() {
 
   return (
     <>
-      <Header title={(activeTree && activeName) || 'Family Tree'}>
+      <Header
+        title={(activeTree && activeName) || 'Family Tree'}
+        center={activeTree ? <TreeStats stats={treeStats} /> : null}
+      >
         <SyncStatus status={status} />
         {activeTree && (
           <>
