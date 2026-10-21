@@ -5,27 +5,56 @@ import './ShareModal.css'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
-function AccessedBy({ accesses = [] }) {
+function withPermission(links, code, userid, permission) {
+  return (links ?? []).map((link) => {
+    if (link.code !== code) return link
+    return {
+      ...link,
+      accessedBy: (link.accessedBy ?? []).map((access) =>
+        access.userid === userid ? { ...access, permission } : access,
+      ),
+    }
+  })
+}
+
+function AccessedBy({ code, accesses = [], updatingKey, onPermission }) {
   if (!accesses.length) return <p className="share-modal__muted">Not opened by anyone yet.</p>
   const sorted = [...accesses].sort((a, b) => b.lastAccessedAt.localeCompare(a.lastAccessedAt))
   return (
     <div className="share-modal__access">
       <span className="share-modal__muted">Accessed by</span>
       <ul>
-        {sorted.map((access) => (
-          <li key={access.userid}>
-            <span className="share-modal__viewer" title={access.email}>
-              {access.name ?? access.email ?? 'Unknown user'}
-              {access.name && access.email && (
-                <span className="share-modal__muted"> {access.email}</span>
-              )}
-            </span>
-            <span className="share-modal__muted">
-              {access.accessCount === 1 ? 'Once' : `${access.accessCount} times`} · last{' '}
-              {dateFormat.format(new Date(access.lastAccessedAt))}
-            </span>
-          </li>
-        ))}
+        {sorted.map((access) => {
+          const label = access.name ?? access.email ?? 'Unknown user'
+          const permission = access.permission === 'write' ? 'write' : 'read'
+          const key = `${code}:${access.userid}`
+          return (
+            <li key={access.userid}>
+              <div className="share-modal__person">
+                <span className="share-modal__viewer" title={access.email}>
+                  {label}
+                  {access.name && access.email && (
+                    <span className="share-modal__muted"> {access.email}</span>
+                  )}
+                </span>
+                <select
+                  className="share-modal__permission"
+                  aria-label={`Permission for ${label}`}
+                  value={permission}
+                  disabled={updatingKey === key}
+                  onChange={(e) => onPermission(code, access.userid, e.target.value)}
+                >
+                  <option value="read">Can view</option>
+                  <option value="write">Can edit</option>
+                </select>
+              </div>
+              <span className="share-modal__muted">
+                {access.accessCount === 1 ? 'Once' : `${access.accessCount} times`} · last{' '}
+                {dateFormat.format(new Date(access.lastAccessedAt))}
+              </span>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
@@ -38,6 +67,7 @@ function ShareModal({ treeId, onClose }) {
   const [error, setError] = useState(null)
   const [creating, setCreating] = useState(false)
   const [copiedCode, setCopiedCode] = useState(null)
+  const [updatingKey, setUpdatingKey] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -80,6 +110,26 @@ function ShareModal({ treeId, onClose }) {
     }
   }
 
+  const handlePermission = async (code, userid, permission) => {
+    const current = links
+      ?.find((link) => link.code === code)
+      ?.accessedBy?.find((access) => access.userid === userid)
+    const previous = current?.permission === 'write' ? 'write' : 'read'
+    if (permission === previous) return
+
+    setUpdatingKey(`${code}:${userid}`)
+    setError(null)
+    setLinks((list) => withPermission(list, code, userid, permission))
+    try {
+      await shares.setAccess(treeId, code, userid, permission)
+    } catch (err) {
+      setLinks((list) => withPermission(list, code, userid, previous))
+      setError(err.message)
+    } finally {
+      setUpdatingKey(null)
+    }
+  }
+
   const handleCopy = async (code) => {
     try {
       await navigator.clipboard.writeText(shares.url(code))
@@ -92,8 +142,8 @@ function ShareModal({ treeId, onClose }) {
   return (
     <Modal title={`Share “${name}”`} onCancel={onClose} error={error}>
       <p className="modal__text share-modal__intro">
-        Anyone with a link can view this tree after signing in with Google. They can’t change it.
-        Revoke a link to stop it working.
+        Anyone with a link can view this tree after signing in with Google. People who have
+        opened it can be allowed to edit. Revoke a link to stop it working.
       </p>
 
       <div>
@@ -138,7 +188,12 @@ function ShareModal({ treeId, onClose }) {
                   Revoke
                 </button>
               </div>
-              <AccessedBy accesses={link.accessedBy} />
+              <AccessedBy
+                code={link.code}
+                accesses={link.accessedBy}
+                updatingKey={updatingKey}
+                onPermission={handlePermission}
+              />
             </li>
           ))}
         </ul>

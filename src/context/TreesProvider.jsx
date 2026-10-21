@@ -272,6 +272,8 @@ function TreesProvider({ children }) {
         return api.createShare(getToken(), id)
       },
       revoke: (id, code) => api.revokeShare(getToken(), id, code),
+      setAccess: (id, code, userId, permission) =>
+        api.setShareAccess(getToken(), id, code, userId, permission),
       url: shareUrl,
     }),
     [getToken, cache, sync],

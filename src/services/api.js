@@ -76,6 +76,13 @@ export async function revokeShare(token, id, code) {
   await json(await request(path, { token, method: 'DELETE' }), 'Could not revoke the share link')
 }
 
+/** Sets one viewer's access on a share link to `read` or `write`. */
+export async function setShareAccess(token, id, code, userId, permission) {
+  const path = `${docPath(id)}/shares/${encodeURIComponent(code)}/access/${encodeURIComponent(userId)}`
+  const res = await request(path, { token, method: 'PUT', body: { permission } })
+  if (!res.ok) throw new Error(await errorMessage(res, 'Could not update access'))
+}
+
 export async function fetchSharedTree(token, code) {
   const res = await request(`/shared/${encodeURIComponent(code)}`, { token })
   if (res.status === 404) throw new Error('This share link has expired or been revoked.')

@@ -60,10 +60,33 @@
 
 .share-modal__access li {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.15rem 0.75rem;
+  flex-direction: column;
+  gap: 0.15rem;
   font-size: 0.8rem;
+}
+
+.share-modal__person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.share-modal__permission {
+  flex: none;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.share-modal__permission:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .share-modal__viewer {
